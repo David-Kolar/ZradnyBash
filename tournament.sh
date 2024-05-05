@@ -15,8 +15,34 @@ width_column_2=8
 width_column_3=8
 width_column_4=38 
 
-process_parameters() {
+load_config_rc_file() {
+    if [ -f "tasks/config.rc" ]; then
+        echo "wtf"
+        source "tasks/config.rc"
+        tournament_name=$title
+        output_dir=$name
+    fi
+}
 
+process_parameters() {
+    eval set -- "$( getopt -o "o:t:" -- "$@" )"
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -o)
+                output_dir="$2"
+                shift
+                ;;
+            -t)
+                tournament_name="$2"
+                ;;
+            --)
+                shift
+                break
+                ;;
+        esac
+        shift
+done
+    
 }
 get_team_name_from_dir() {
     echo "$1" | cut -d "-" -f 2
@@ -85,7 +111,8 @@ repeat_characters() {
 }
 
 create_table_row() {
-    # 1-4 -> text in rows 1-4; 5 -> space character; 6 -> column separator
+    # 1-4 -> text in columns 1-4; 5 -> space character; 6 -> column separator
+    # storing length of all 4 columns in 4 coresponding variables
     characters_column1="$( echo -n "$1" | wc -c )"
     characters_column2="$( echo -n "$2" | wc -c )"
     characters_column3="$( echo -n "$3" | wc -c )"
@@ -96,6 +123,7 @@ create_table_row() {
     echo "${6}${4}$( repeat_characters $(( width_column_4 - characters_column4)) "${5}" )${6}"
 }
 create_table_for_each_team() {
+    # loops over each team, generates corresponding table and saves it in file index.md
     for team in "$temp_dir"/team-*; do
         team_name="$( get_team_name_from_dir "$team" )"
         echo "# Team ${team_name}" >> "${team}/index.md"
@@ -107,6 +135,7 @@ create_table_for_each_team() {
             create_table_row " ${task}" " ${passed} " " ${failed} " " ${links}" ' ' "|" >> "${team}/index.md"
         done < "${team}/team_results"
         create_table_row "" "" "" "" "-" "+" >> "${team}/index.md"
+        # deletes redundant file team_results
         rm "${team}/team_results"
     done
 }
@@ -116,8 +145,8 @@ export_results() {
     cp -r "${temp_dir}"/team-* "${temp_dir}/index.md" "${output_dir}"
 }
 
-
-
+load_config_rc_file
+process_parameters "$@"
 copy_files_to_temp
 process_team_logs
 create_table_with_tournament_results
