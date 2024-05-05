@@ -15,7 +15,9 @@ width_column_2=8
 width_column_3=8
 width_column_4=38 
 
+process_parameters() {
 
+}
 get_team_name_from_dir() {
     echo "$1" | cut -d "-" -f 2
 }
@@ -24,10 +26,10 @@ copy_files_to_temp() {
     cd tasks
     for task in *; do
         if [ -d "$task" ]; then            
-            cd $task
+            cd "$task"
             echo "$task" >> "${temp_dir}/task_names"
             for team in *.gz; do
-                team_name="team-$( basename $team ".log.gz")"
+                team_name="team-$( basename "$team" ".log.gz")"
                 path="${temp_dir}/${team_name}"
                 mkdir -p "$path"
                 cp "${team}" "${path}/${task}.log.gz"
@@ -40,17 +42,17 @@ copy_files_to_temp() {
 }
 
 process_team_logs() {
-    for team in $temp_dir/team-*; do
-        team_name="$( get_team_name_from_dir $team )"
+    for team in "${temp_dir}"/team-*; do
+        team_name="$( get_team_name_from_dir "$team" )"
         points=0
-        echo $team
+        echo "$team"
         while read task; do
-            echo $task
+            echo "$task"
             failed=0
             passed=0
             if [ -f "${team}/${task}.log" ]; then
-                passed="$(cat "${team}/${task}.log" | cut -d " " -f 1 | (grep -F "pass" || echo "") | wc -w)"
-                failed="$(cat "${team}/${task}.log" | cut -d " " -f 1 | (grep -F "fail" || echo "") | wc -w)"
+                passed="$( <"${team}/${task}.log" cut -d " " -f 1 | (grep -F "pass" || echo "") | wc -w)"
+                failed="$( <"${team}/${task}.log" cut -d " " -f 1 | (grep -F "fail" || echo "") | wc -w)"
                 points=$((points+passed))
                 
             else
@@ -63,7 +65,7 @@ process_team_logs() {
 }
 
 create_table_with_tournament_results() {
-    cat "${temp_dir}/tournament_results" | sort -r -n -k 1 > "${temp_dir}/sorted_results"
+    <"${temp_dir}/tournament_results" sort -r -n -k 1 > "${temp_dir}/sorted_results"
     echo "# ${tournament_name}" > "${temp_dir}/index.md"
     echo >> "${temp_dir}/index.md"
     poradi=1;
@@ -91,27 +93,27 @@ create_table_row() {
     echo -n "${6}${1}$( repeat_characters $(( width_column_1 - characters_column1)) "${5}" )"
     echo -n "${6}$( repeat_characters $(( width_column_2 - characters_column2 )) "${5}" )${2}"
     echo -n "${6}$( repeat_characters $(( width_column_3 - characters_column3 )) "${5}" )${3}"
-    echo -n "${6}${4}$( repeat_characters $(( width_column_4 - characters_column4)) "${5}" )${6}"
+    echo "${6}${4}$( repeat_characters $(( width_column_4 - characters_column4)) "${5}" )${6}"
 }
 create_table_for_each_team() {
-    for team in $temp_dir/team-*; do
-        team_name="$( get_team_name_from_dir $team )"
+    for team in "$temp_dir"/team-*; do
+        team_name="$( get_team_name_from_dir "$team" )"
         echo "# Team ${team_name}" >> "${team}/index.md"
         echo >> "${team}/index.md"
-        echo "$(create_table_row "" "" "" "" "-" "+")" >> "${team}/index.md";
-        echo "$(create_table_row " Task " " Passed " " Failed " " Links" ' ' "|")" >> "${team}/index.md"
-        echo "$(create_table_row "" "" "" "" "-" "+")" >> "${team}/index.md";
+        create_table_row "" "" "" "" "-" "+" >> "${team}/index.md";
+        create_table_row " Task " " Passed " " Failed " " Links" ' ' "|" >> "${team}/index.md"
+        create_table_row "" "" "" "" "-" "+" >> "${team}/index.md";
         while read task passed failed links; do
-            echo "$(create_table_row " ${task}" " ${passed} " " ${failed} " " ${links}" ' ' "|")" >> "${team}/index.md"
+            create_table_row " ${task}" " ${passed} " " ${failed} " " ${links}" ' ' "|" >> "${team}/index.md"
         done < "${team}/team_results"
-        echo "$(create_table_row "" "" "" "" "-" "+")" >> "${team}/index.md"
+        create_table_row "" "" "" "" "-" "+" >> "${team}/index.md"
         rm "${team}/team_results"
     done
 }
 
 export_results() {
     mkdir -p "${output_dir}"
-    cp -r ${temp_dir}/team-* "${temp_dir}/index.md" "${output_dir}"
+    cp -r "${temp_dir}"/team-* "${temp_dir}/index.md" "${output_dir}"
 }
 
 
@@ -121,6 +123,5 @@ process_team_logs
 create_table_with_tournament_results
 repeat_characters 10 ' '
 create_table_for_each_team
-tree $temp_dir
 export_results
-rm -fr $temp_dir
+rm -fr "$temp_dir"
