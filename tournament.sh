@@ -56,7 +56,7 @@ process_team_logs() {
             else
                 echo "Log not available." > "${team}/${task}.log"
             fi
-            echo "${task} ${passed} ${failed} [Complete log](${task}.log)" >> "${team}/team_results"
+            echo "${task} ${passed} ${failed} [Complete log](${task}.log)." >> "${team}/team_results"
         done < "${temp_dir}/task_names"
         echo "${points} ${team_name}" >> "${temp_dir}/tournament_results"
     done    
@@ -88,21 +88,21 @@ create_table_row() {
     characters_column2="$( echo -n "$2" | wc -c )"
     characters_column3="$( echo -n "$3" | wc -c )"
     characters_column4="$( echo -n "$4" | wc -c )"
-    echo -n "${6}${1}$( repeat_characters $(( width_column_1 - characters_column1 )) ${5} )"
-    echo -n "${6}${2}$( repeat_characters $(( width_column_2 - characters_column2 )) ${5} )"
-    echo -n "${6}${3}$( repeat_characters $(( width_column_3 - characters_column3 )) ${5} )"
-    echo -n "${6}${4}$( repeat_characters $(( width_column_4 - characters_column4)) ${5} )${6}"
+    echo -n "${6}${1}$( repeat_characters $(( width_column_1 - characters_column1)) "${5}" )"
+    echo -n "${6}$( repeat_characters $(( width_column_2 - characters_column2 )) "${5}" )${2}"
+    echo -n "${6}$( repeat_characters $(( width_column_3 - characters_column3 )) "${5}" )${3}"
+    echo -n "${6}${4}$( repeat_characters $(( width_column_4 - characters_column4)) "${5}" )${6}"
 }
 create_table_for_each_team() {
     for team in $temp_dir/team-*; do
         team_name="$( get_team_name_from_dir $team )"
-        echo "Team ${team_name}" >> "${team}/index.md"
-        echo
+        echo "# Team ${team_name}" >> "${team}/index.md"
+        echo >> "${team}/index.md"
         echo "$(create_table_row "" "" "" "" "-" "+")" >> "${team}/index.md";
-        echo "$(create_table_row " Task" " Passed" " Failed" "Links" ' ' "|")" >> "${team}/index.md"
+        echo "$(create_table_row " Task " " Passed " " Failed " " Links" ' ' "|")" >> "${team}/index.md"
         echo "$(create_table_row "" "" "" "" "-" "+")" >> "${team}/index.md";
         while read task passed failed links; do
-            echo "$(create_table_row " ${task}" " ${passed}" " ${failed}" " ${links}" ' ' "|")" >> "${team}/index.md"
+            echo "$(create_table_row " ${task}" " ${passed} " " ${failed} " " ${links}" ' ' "|")" >> "${team}/index.md"
         done < "${team}/team_results"
         echo "$(create_table_row "" "" "" "" "-" "+")" >> "${team}/index.md"
         rm "${team}/team_results"
