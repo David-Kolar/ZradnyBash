@@ -2,13 +2,16 @@
 
 set -ueo pipefail
 
+# Create a temporary directory
 temp_dir="$( mktemp -d )"
 
+# Define output directory for tournament results
 output_dir="out"
 
+# Define the name of the tournament
 tournament_name="My tournament"
 
-# constants
+# Define sizes of table columns
 
 width_column_1=20
 width_column_2=8 
@@ -17,7 +20,6 @@ width_column_4=38
 
 load_config_rc_file() {
     if [ -f "tasks/config.rc" ]; then
-        echo "wtf"
         source "tasks/config.rc"
         tournament_name=$title
         output_dir=$name
@@ -44,14 +46,16 @@ process_parameters() {
 done
     
 }
+
 get_team_name_from_dir() {
     echo "$1" | cut -d "-" -f 2
 }
 
 copy_files_to_temp() {
+    # Unpack and copy log files for each team to a temporary directory
     cd tasks
     for task in *; do
-        if [ -d "$task" ]; then            
+        if [ -d "$task" ]; then          
             cd "$task"
             echo "$task" >> "${temp_dir}/task_names"
             for team in *.gz; do
@@ -71,9 +75,7 @@ process_team_logs() {
     for team in "${temp_dir}"/team-*; do
         team_name="$( get_team_name_from_dir "$team" )"
         points=0
-        echo "$team"
         while read task; do
-            echo "$task"
             failed=0
             passed=0
             if [ -f "${team}/${task}.log" ]; then
@@ -82,6 +84,7 @@ process_team_logs() {
                 points=$((points+passed))
                 
             else
+                # In case log file of some task is not available 
                 echo "Log not available." > "${team}/${task}.log"
             fi
             echo "${task} ${passed} ${failed} [Complete log](${task}.log)." >> "${team}/team_results"
@@ -111,8 +114,8 @@ repeat_characters() {
 }
 
 create_table_row() {
-    # 1-4 -> text in columns 1-4; 5 -> space character; 6 -> column separator
-    # storing length of all 4 columns in 4 coresponding variables
+    # 1-4 -> text in columns 1-4; 5 -> character used as space; 6 -> character used as column separator
+    # Store length of all 4 columns in 4 coresponding variables
     characters_column1="$( echo -n "$1" | wc -c )"
     characters_column2="$( echo -n "$2" | wc -c )"
     characters_column3="$( echo -n "$3" | wc -c )"
@@ -123,7 +126,7 @@ create_table_row() {
     echo "${6}${4}$( repeat_characters $(( width_column_4 - characters_column4)) "${5}" )${6}"
 }
 create_table_for_each_team() {
-    # loops over each team, generates corresponding table and saves it in file index.md
+    # Loop over each team, generate corresponding table and save it as file index.md in directory of that team
     for team in "$temp_dir"/team-*; do
         team_name="$( get_team_name_from_dir "$team" )"
         echo "# Team ${team_name}" >> "${team}/index.md"
@@ -135,7 +138,7 @@ create_table_for_each_team() {
             create_table_row " ${task}" " ${passed} " " ${failed} " " ${links}" ' ' "|" >> "${team}/index.md"
         done < "${team}/team_results"
         create_table_row "" "" "" "" "-" "+" >> "${team}/index.md"
-        # deletes redundant file team_results
+        # Delete file team_results which is no longer needed
         rm "${team}/team_results"
     done
 }
@@ -145,12 +148,13 @@ export_results() {
     cp -r "${temp_dir}"/team-* "${temp_dir}/index.md" "${output_dir}"
 }
 
+# Execute functions to run this script
 load_config_rc_file
 process_parameters "$@"
 copy_files_to_temp
 process_team_logs
 create_table_with_tournament_results
-repeat_characters 10 ' '
 create_table_for_each_team
 export_results
+# Delete all temporary files
 rm -fr "$temp_dir"
